@@ -1,3 +1,4 @@
+#define _CRT_SECURE_NO_WARNINGS
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -5,15 +6,13 @@
 
 typedef struct element {
     char data[256];
-    int priority;
-    struct element *next;
+    int priority; // используется только для приоритетной очереди
+    struct element* next;
 } element;
 
-element *head = NULL;   // начало приоритетной очереди
-element *last = NULL;   // конец приоритетной очереди
-
-element* createNode(void) {
-    element *p = NULL;
+// Функция создания узла
+element* createNode(int needPriority) {
+    element* p = NULL;
     char s[256];
 
     p = (element*)malloc(sizeof(element));
@@ -23,7 +22,7 @@ element* createNode(void) {
     }
 
     printf("Введите название объекта: ");
-    scanf("%255s", s);  // защита от переполнения буфера
+    scanf("%255s", s);
 
     if (s[0] == '\0') {
         printf("Запись не была произведена\n");
@@ -33,85 +32,193 @@ element* createNode(void) {
 
     strcpy(p->data, s);
 
-    printf("Введите приоритет (целое число): ");
-    scanf("%d", &p->priority);
+    if (needPriority) {
+        printf("Введите приоритет (целое число): ");
+        scanf("%d", &p->priority);
+    }
+    else {
+        p->priority = 0;
+    }
 
     p->next = NULL;
-
     return p;
 }
 
+// --- 1. ПРИОРИТЕТНАЯ ОЧЕРЕДЬ (Задание 1) ---
+element* pq_head = NULL;
+element* pq_last = NULL;
 
 void addWithPriority(void) {
-    element *newNode = createNode();
-    if (newNode == NULL) {
-        return;  // если создание узла не удалось
-    }
+    element* newNode = createNode(1);
+    if (newNode == NULL) return;
 
-    // случай 1: список пуст
-    if (head == NULL) {
-        head = newNode;
-        last = newNode;
+    if (pq_head == NULL) {
+        pq_head = newNode;
+        pq_last = newNode;
         return;
     }
 
-    // случай 2: новый элемент должен стать первым (приоритет больше, чем у head)
-    if (newNode->priority > head->priority) {
-        newNode->next = head;
-        head = newNode;
+    if (newNode->priority > pq_head->priority) {
+        newNode->next = pq_head;
+        pq_head = newNode;
         return;
     }
 
-    // случай 3: ищем место для вставки в середину или в конец
-    element *current = head;
-    element *previous = NULL;
+    element* current = pq_head;
+    element* previous = NULL;
 
-    // идём по списку, пока следующий элемент существует
-    // и его приоритет больше или равен приоритету нового узла
     while (current != NULL && current->priority >= newNode->priority) {
         previous = current;
         current = current->next;
     }
 
-    // вставляем между previous и current
     previous->next = newNode;
     newNode->next = current;
 
-    // если вставили в самый конец, обновляем last
     if (current == NULL) {
-        last = newNode;
+        pq_last = newNode;
     }
 }
 
+void printPriorityQueue(void) {
+    element* cur = pq_head;
+    if (cur == NULL) {
+        printf("Приоритетная очередь пуста\n");
+        return;
+    }
+    printf("--- Приоритетная очередь ---\n");
+    while (cur != NULL) {
+        printf("Объект: %s, приоритет: %d\n", cur->data, cur->priority);
+        cur = cur->next;
+    }
+}
+
+// --- 2. ОЧЕРЕДЬ / FIFO (Задание 2) ---
+element* q_head = NULL;
+element* q_last = NULL;
+
+void enqueue(void) {
+    element* newNode = createNode(0);
+    if (newNode == NULL) return;
+
+    if (q_last == NULL) {
+        q_head = q_last = newNode;
+    }
+    else {
+        q_last->next = newNode;
+        q_last = newNode;
+    }
+    printf("Элемент добавлен в очередь.\n");
+}
+
+void dequeue(void) {
+    if (q_head == NULL) {
+        printf("Очередь пуста\n");
+        return;
+    }
+    element* temp = q_head;
+    printf("Извлечен из очереди: %s\n", temp->data);
+    q_head = q_head->next;
+    if (q_head == NULL) {
+        q_last = NULL;
+    }
+    free(temp);
+}
+
+void printQueue(void) {
+    element* cur = q_head;
+    if (cur == NULL) {
+        printf("Очередь пуста\n");
+        return;
+    }
+    printf("--- Очередь (FIFO) ---\n");
+    while (cur != NULL) {
+        printf("Объект: %s\n", cur->data);
+        cur = cur->next;
+    }
+}
+
+// --- 3. СТЕК / LIFO (Задание 3) ---
+element* stack_top = NULL;
+
+void push(void) {
+    element* newNode = createNode(0);
+    if (newNode == NULL) return;
+
+    newNode->next = stack_top;
+    stack_top = newNode;
+    printf("Элемент добавлен в стек.\n");
+}
+
+void pop(void) {
+    if (stack_top == NULL) {
+        printf("Стек пуст\n");
+        return;
+    }
+    element* temp = stack_top;
+    printf("Извлечен из стека: %s\n", temp->data);
+    stack_top = stack_top->next;
+    free(temp);
+}
+
+void printStack(void) {
+    element* cur = stack_top;
+    if (cur == NULL) {
+        printf("Стек пуст\n");
+        return;
+    }
+    printf("--- Стек (LIFO) ---\n");
+    while (cur != NULL) {
+        printf("Объект: %s\n", cur->data);
+        cur = cur->next;
+    }
+}
+
+// Очистка всей выделенной памяти при выходе
+void freeAll(void) {
+    element* temp;
+    while (pq_head != NULL) { temp = pq_head; pq_head = pq_head->next; free(temp); }
+    while (q_head != NULL) { temp = q_head; q_head = q_head->next; free(temp); }
+    while (stack_top != NULL) { temp = stack_top; stack_top = stack_top->next; free(temp); }
+}
 
 int main(void) {
-    SetConsoleCP(CP_UTF8);
-    SetConsoleOutputCP(CP_UTF8);
+    SetConsoleCP(1251);
+    SetConsoleOutputCP(1251);
     int choice;
+
     while (1) {
-        printf("\n1. Добавить элемент в приоритетную очередь\n");
-        printf("2. Показать очередь\n");
+        printf("\n=== МЕНЮ ЛАБОРАТОРНОЙ РАБОТЫ ===\n");
+        printf("1. Добавить в приоритетную очередь\n");
+        printf("2. Показать приоритетную очередь\n");
+        printf("3. Добавить в очередь (Enqueue)\n");
+        printf("4. Удалить из очереди (Dequeue)\n");
+        printf("5. Показать очередь\n");
+        printf("6. Добавить в стек (Push)\n");
+        printf("7. Удалить из стека (Pop)\n");
+        printf("8. Показать стек\n");
         printf("0. Выход\n");
         printf("Выбор: ");
-        scanf("%d", &choice);
 
-        if (choice == 1) {
-            addWithPriority();
-        } else if (choice == 2) {
-            // тут позже напишешь функцию просмотра
-            element *cur = head;
-            if (cur == NULL) {
-                printf("Очередь пуста\n");
-            } else {
-                while (cur != NULL) {
-                    printf("Объект: %s, приоритет: %d\n", cur->data, cur->priority);
-                    cur = cur->next;
-                }
-            }
-        } else if (choice == 0) {
-            // тут потом добавишь очистку памяти
+        if (scanf("%d", &choice) != 1) {
+            printf("Ошибка ввода.\n");
             break;
-        } else {
+        }
+
+        switch (choice) {
+        case 1: addWithPriority(); break;
+        case 2: printPriorityQueue(); break;
+        case 3: enqueue(); break;
+        case 4: dequeue(); break;
+        case 5: printQueue(); break;
+        case 6: push(); break;
+        case 7: pop(); break;
+        case 8: printStack(); break;
+        case 0:
+            freeAll();
+            printf("Память очищена. Выход...\n");
+            return 0;
+        default:
             printf("Неверный выбор\n");
         }
     }
