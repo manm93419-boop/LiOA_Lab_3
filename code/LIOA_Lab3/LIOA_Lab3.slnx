@@ -1,0 +1,7 @@
+<Solution>
+  <Configurations>
+    <Platform Name="x64" />
+    <Platform Name="x86" />
+  </Configurations>
+  <Project Path="LIOA_Lab3/LIOA_Lab3.vcxproj" Id="95048143-b9da-46a6-99ca-7439ab3ba8ab" />
+</Solution>
